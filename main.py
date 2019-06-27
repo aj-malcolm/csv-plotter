@@ -2,11 +2,8 @@ import os
 import matplotlib
 import pandas as pd
 import numpy as np
-import functions as fnc
 from tkinter import Tk, Frame, END
 from tkinter import filedialog
-from scipy.optimize import curve_fit
-from createNoiseClass import NoiseData
 from createUI import MainWindow
 matplotlib.use('TkAgg')
 
@@ -17,25 +14,16 @@ class Application(Frame, MainWindow):
         self.grid()
         self.create_ui()
 
-        self.noise_object = NoiseData()
 
         # Variables inherited from MainWindow
         try:
-            self.load_button['command'] = self.select_directory
-            self.sub_dir_button['command'] = self.create_file_list
-            self.rolling_avg_button['command'] = self.rolling_avg_pushed
-            self.begin_analysis_button['command'] = self.begin_analysis
-            self.sub_dir_combo.bind("<<ComboboxSelected>>", self.create_file_list)
+            self.load_button['command'] = self.create_file_list
             self.file_list_combo.bind("<<ComboboxSelected>>", self.select_new_file)
-            self.rolling_avg_entry.insert(0, '10')
-            self.rolling_avg_entry.bind("<Return>", self.change_rolling_avg_num)
             self.next_meas_button['command'] = self.select_next_meas
             self.prev_meas_button['command'] = self.select_prev_meas
-            self.canvas1.mpl_connect('button_press_event', self.on_pick)
-            self.canvas1.mpl_connect('button_release_event', self.off_pick)
-
-            self.undo_peak_button['command'] = self.undo_peak
-            self.clear_peaks_button['command'] = self.clear_peaks
+            self.plot_button['command'] = self.update_main_plot
+            #self.canvas1.mpl_connect('button_press_event', self.on_pick)
+            #self.canvas1.mpl_connect('button_release_event', self.off_pick)
         except Exception as err:
             print('Error setting variables: ' + str(err))
 
@@ -59,7 +47,7 @@ class Application(Frame, MainWindow):
         self.point_num = 0
         self.params = []
 
-    def select_directory(self):
+    def create_file_list(self):
         """
             pick a directory from which to load data
         """
@@ -67,38 +55,39 @@ class Application(Frame, MainWindow):
             self.main_dir = filedialog.askdirectory()
             self.directory_text.delete(1.0, END)
             self.directory_text.insert('1.0', str(self.main_dir))
-            self.sub_directories = [x[0].replace(self.main_dir, '') for x in os.walk(self.main_dir)]
-            self.sub_dir_combo['values'] = self.sub_directories[1:]
         except Exception as err:
             print("Error encountered in select_directory: " + str(err))
-
-    def create_file_list(self, event=None):
-        """
-            Create file list
-        """
-        self.file_dir = self.main_dir + self.sub_dir_combo.get()
+        self.file_dir = self.main_dir
         try:
             self.file_list = [x[2] for x in os.walk(self.file_dir)][0]
             self.file_list = [x for x in self.file_list if '.csv' in x]
             self.file_list_combo['values'] = self.file_list
+            self.file_list_combo.set(self.file_list[0])
+            self.select_new_file()
         except Exception as err:
             print("Error encountered in create_file_list: " + str(err))
-
-    def create_noise_object(self, file_name):
-        self.noise_object = NoiseData(file_name, self.rolling_avg_use)
-        self.clear_peaks()
-        self.update_main_plot()
 
     def select_new_file(self, event=None):
         try:
             file_name = self.file_dir + '\\' + self.file_list_combo.get()
-            self.create_noise_object(file_name)
+
+            self.df = pd.read_csv(file_name)
+            self.headers = self.df.columns.values.tolist()
+            self.x_axis_combo['values'] = self.headers
+            self.x_axis_combo.set(self.headers[0])
+            self.y_axis_one_combo['values'] = self.headers
+            self.y_axis_one_combo.set(self.headers[1])
+            y_axis2 = ['None'] + self.headers
+            self.y_axis_two_combo['values'] = y_axis2
+            self.y_axis_two_combo.set(y_axis2[0])
+
+            self.update_main_plot()
         except Exception as err:
             print("Error occurred in read_csv: " + str(err))
 
     def select_next_meas(self):
         index = self.file_list.index(self.file_list_combo.get())
-        if index < len(self.file_list):
+        if index < len(self.file_list)-1:
             index = index + 1
         else:
             pass
@@ -114,76 +103,36 @@ class Application(Frame, MainWindow):
         self.file_list_combo.set(self.file_list[index])
         self.select_new_file()
 
-    def update_main_plot(self, dig=False):
-        self.f1ax1.clear()
-        self.f1ax2.clear()
+    def update_main_plot(self):
+        self.ax1.clear()
+        self.ax2.clear()
+        self.ax2.axes.get_yaxis().set_visible(False)
+        self.ax1.yaxis.set_ticks_position('both')
 
-        self.f1ax1.plot(self.noise_object.time, self.noise_object.current)
-        self.f1ax1.set_title("Sampled Current Data w/ Rolling Average")
-        self.f1ax1.set_xlabel("Time (s)")
-        self.f1ax1.set_ylabel("Current (A)")
+        x_data = self.df[self.x_axis_combo.get()].tolist()
+        y1_data = self.df[self.y_axis_one_combo.get()].tolist()
+        y2_str = self.y_axis_two_combo.get()
+        self.ax1.plot(x_data, y1_data)
 
-        self.f1ax2.plot(self.noise_object.current_histogram, self.noise_object.current_histogram_bins)
-        self.f1ax2.set_title("Current Levels of Sampled Data")
-        self.f1ax2.set_xlabel("Counts")
+        self.ax1.set_xlabel(self.x_axis_label_entry.get())
+        self.ax1.set_ylabel(self.y_axis_one_label_entry.get())
 
-        if len(self.noise_object.params) > 0:
-            try:
-                self.f1ax2.plot(self.noise_object.gauss_curve, self.noise_object.current_histogram_bins)
-            except Exception as err:
-                print('Error in plotting gauss: ' + str(err))
+        if 'None' not in y2_str:
+            y2_data = self.df[y2_str].tolist()
+            self.ax1.yaxis.set_ticks_position('left')
+            self.ax2.plot(x_data, y2_data)
+            self.ax2.set_ylabel(self.y_axis_two_label_entry.get())
+            self.ax2.axes.get_yaxis().set_visible(True)
 
+        self.ax1.set_title(self.set_title_entry.get().replace('\TITLE', self.file_list_combo.get()))
         self.main_fig.tight_layout()
         self.canvas1.draw()
-
-    def rolling_avg_pushed(self):
-        try:
-            if self.rolling_avg_use:
-                self.rolling_avg_button['text'] = 'Enable rolling average'
-            else:
-                self.rolling_avg_button['text'] = 'Disable rolling average'
-        except Exception as err:
-            print('Error setting button text. Msg: ' + str(err))
-        self.rolling_avg_use = not self.rolling_avg_use
-        self.noise_object.toggle_rolling_average(self.rolling_avg_use)
-        self.update_main_plot()
-
-    def change_rolling_avg_num(self, event):
-        num = int(self.rolling_avg_entry.get())
-        self.noise_object.toggle_rolling_average(self.rolling_avg_use, num)
-        self.update_main_plot()
 
     def print_pdf(self):
         pass
 
     def on_pick(self, event):
         y_point, x_point = event.xdata, event.ydata  # have to flip x and y because plot is displayed at right angle
-        self.params += [x_point, y_point, abs(x_point/1000)]
-        self.noise_object.create_gaussian_fit(self.params)
-        self.update_main_plot()
-
-    def off_pick(self, event):
-        x_point, y_point = event.xdata, event.ydata
-
-    def begin_analysis(self):
-        self.add_tab()
-        self.noise_object.digitize()
-        self.f2ax1.plot(self.noise_object.time, self.noise_object.current)
-        self.f2ax1.plot(self.noise_object.time, self.noise_object.digitized_current)
-        self.f2ax3.plot(self.noise_object.time, self.noise_object.peak_removed)
-        self.f2ax4.plot(self.noise_object.current_histogram_peak_removed, self.noise_object.current_histogram_peak_removed_bins)
-
-    def undo_peak(self):
-        if len(self.params) > 0:
-            self.params = self.params[0:-3]
-        self.noise_object.create_gaussian_fit(self.params)
-        self.update_main_plot()
-
-    def clear_peaks(self):
-        self.params = []
-        self.noise_object.create_gaussian_fit(self.params)
-        self.update_main_plot()
-        self.vt = []
 
 
 if __name__ == "__main__":
@@ -191,7 +140,7 @@ if __name__ == "__main__":
     root = Tk()
 
     # Set title using wm (windows manager)
-    root.wm_title("RTN Analysis Code")
+    root.wm_title("CSV Plotter")
 
     # Create the application
     app = Application()
