@@ -34,12 +34,13 @@ class MainWindow:
         self.canvas1 = None
 
     def create_ui(self):
+        self.create_options_frame()
+        self.create_toolbar_frame()
+
+
+    def create_options_frame(self):
         self.options_frame = tk.Frame(self)
         self.options_frame.pack(side=tk.LEFT, anchor='n', pady=10)
-
-        self.graph_frame = tk.Frame(self)
-        self.graph_frame.pack(side=tk.LEFT)
-
         self.load_button = tk.Button(self.options_frame, text='Select Directory')
         self.load_button.grid(row=0, column=0, padx=(5, 0), pady=2.5)
         self.directory_text = tk.Text(self.options_frame, height=1, width=80)
@@ -104,19 +105,76 @@ class MainWindow:
         nb.add(more_options_frame, text='Graph Options')
         nb.add(curve_fit_frame, text='Curve Fit Options')
 
+        range_frame = tk.Frame(more_options_frame, borderwidth=1, relief=tk.GROOVE)
+        range_frame.pack()
+
+        self.retain_range = tk.IntVar(value=1)
+        self.retain_range_button = tk.Checkbutton(range_frame, text="Use default limits.",
+                                                  variable=self.retain_range, padx=5, pady=5)
+        self.retain_range_button.grid(row=0, column=0, pady=5, sticky='w')
+
+        set_xmin_range_label = tk.Label(range_frame, text='Set min x value: ')
+        set_xmin_range_label.grid(row=1, column=0, pady=5, sticky='w')
+        self.set_xmin_range_entry = tk.Entry(range_frame, width=10)
+        self.set_xmin_range_entry.grid(row=1, column=1, padx=10, sticky='w')
+        set_xmax_range_label = tk.Label(range_frame, text='Set max x value: ')
+        set_xmax_range_label.grid(row=2, column=0, pady=5, sticky='w')
+        self.set_xmax_range_entry = tk.Entry(range_frame, width=10)
+        self.set_xmax_range_entry.grid(row=2, column=1, padx=10, sticky='w')
+        self.reset_xrange_button = tk.Button(range_frame, text='Reset x limits')
+        self.reset_xrange_button.grid(row=3, column=0, sticky='w')
+
+        set_y1min_range_label = tk.Label(range_frame, text='Set min y1 value: ')
+        set_y1min_range_label.grid(row=1, column=2, pady=5, sticky='w')
+        self.set_y1min_range_entry = tk.Entry(range_frame, width=10)
+        self.set_y1min_range_entry.grid(row=1, column=3, padx=10, sticky='w')
+        set_y1max_range_label = tk.Label(range_frame, text='Set max y1 value: ')
+        set_y1max_range_label.grid(row=2, column=2, pady=5, sticky='w')
+        self.set_y1max_range_entry = tk.Entry(range_frame, width=10)
+        self.set_y1max_range_entry.grid(row=2, column=3, padx=10, sticky='w')
+        self.reset_y1range_button = tk.Button(range_frame, text='Reset y1 limits')
+        self.reset_y1range_button.grid(row=3, column=2, sticky='w')
+
+        set_y2min_range_label = tk.Label(range_frame, text='Set min y2 value: ')
+        set_y2min_range_label.grid(row=1, column=4, pady=5, sticky='w')
+        self.set_y2min_range_entry = tk.Entry(range_frame, width=10)
+        self.set_y2min_range_entry.grid(row=1, column=5, padx=10, sticky='w')
+        set_y2max_range_label = tk.Label(range_frame, text='Set max y2 value: ')
+        set_y2max_range_label.grid(row=2, column=4, pady=5, sticky='w')
+        self.set_y2max_range_entry = tk.Entry(range_frame, width=10)
+        self.set_y2max_range_entry.grid(row=2, column=5, padx=10, sticky='w')
+        self.reset_y2range_button = tk.Button(range_frame, text='Reset y2 limits')
+        self.reset_y2range_button.grid(row=3, column=4, sticky='w')
+
+        normalize_frame = tk.Frame(more_options_frame, borderwidth=1, relief=tk.GROOVE)
+        normalize_frame.pack()
+        normalize_label = tk.Label(normalize_frame, text='Normalize data to: ')
+        normalize_label.pack(side=tk.LEFT)
+        self.normalize_entry = tk.Entry(normalize_frame)
+        self.normalize_entry.pack(side=tk.LEFT)
+        self.normalize_button = tk.Button(normalize_frame, text='Reset normalization')
+        self.normalize_button.pack(side=tk.LEFT)
 
 
+
+
+
+
+    def create_toolbar_frame(self):
+        self.graph_frame = tk.Frame(self)
+        self.graph_frame.pack(side=tk.LEFT)
+
+        self.save_fig_button = tk.Button(master=self.graph_frame, text='Save Figure')
+        self.save_fig_button.grid(row=2, column=0, sticky='w', padx=10)
         toolbar_frame = tk.Frame(master=self.graph_frame)
-        toolbar_frame.grid(row=2, column=0, columnspan=2, sticky='w', padx=10)
+        toolbar_frame.grid(row=2, column=1, columnspan=2, sticky='w', padx=10)
 
         self.main_fig, self.ax1 = plt.subplots(1, 1, figsize=(8, 6), dpi=100)
-        self.ax2 = self.ax1.twinx()
-        self.ax2.axes.get_yaxis().set_visible(False)
         self.canvas1 = FigureCanvasTkAgg(self.main_fig, master=self.graph_frame)
         toolbar1 = NavigationToolbar2Tk(self.canvas1, toolbar_frame)
         toolbar1.update()
         self.canvas1.draw()
-        self.canvas1.get_tk_widget().grid(row=3, column=0, columnspan=2, padx=0)
+        self.canvas1.get_tk_widget().grid(row=3, column=0, columnspan=4, padx=0)
 
 
 
