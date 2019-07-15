@@ -6,7 +6,6 @@ import numpy as np
 from tkinter import Tk, Frame, END
 from tkinter import filedialog
 from createUI import MainWindow
-matplotlib.use('TkAgg')
 
 
 class Application(Frame, MainWindow):
@@ -19,9 +18,12 @@ class Application(Frame, MainWindow):
         try:
             self.load_button['command'] = self.create_file_list
             self.file_list_combo.bind("<<ComboboxSelected>>", self.select_new_file)
+            self.x_axis_combo.bind("<<ComboboxSelected>>", self.load_x_data)
+            self.y1_axis_combo.bind("<<ComboboxSelected>>", self.load_y1_data)
+            self.y2_axis_combo.bind("<<ComboboxSelected>>", self.load_y2_data)
             self.next_meas_button['command'] = self.select_next_meas
             self.prev_meas_button['command'] = self.select_prev_meas
-            self.plot_button['command'] = self.update_main_plot
+            self.plot_button['command'] = self.plot_data
             self.normalize_button['command'] = self.normalize
             self.normalize_entry.bind("<Return>", self.normalize)
             self.reset_xrange_button['command'] = self.reset_x_range
@@ -29,12 +31,12 @@ class Application(Frame, MainWindow):
             self.reset_y2range_button['command'] = self.reset_y2_range
             self.save_fig_button['command'] = self.save_fig
 
-            self.set_xmin_range_entry.bind("<Return>", self.update_main_plot)
-            self.set_xmax_range_entry.bind("<Return>", self.update_main_plot)
-            self.set_y1min_range_entry.bind("<Return>", self.update_main_plot)
-            self.set_y1max_range_entry.bind("<Return>", self.update_main_plot)
-            self.set_y2min_range_entry.bind("<Return>", self.update_main_plot)
-            self.set_y2max_range_entry.bind("<Return>", self.update_main_plot)
+            self.set_xmin_range_entry.bind("<Return>", self.set_limits)
+            self.set_xmax_range_entry.bind("<Return>", self.set_limits)
+            self.set_y1min_range_entry.bind("<Return>", self.set_limits)
+            self.set_y1max_range_entry.bind("<Return>", self.set_limits)
+            self.set_y2min_range_entry.bind("<Return>", self.set_limits)
+            self.set_y2max_range_entry.bind("<Return>", self.set_limits)
             # self.canvas1.mpl_connect('button_press_event', self.on_pick)
             # self.canvas1.mpl_connect('button_release_event', self.off_pick)
         except Exception as err:
@@ -137,15 +139,15 @@ class Application(Frame, MainWindow):
             self.headers = self.df.columns.values.tolist()
             self.x_axis_combo['values'] = self.headers
             self.x_axis_combo.set(self.headers[0])
-            self.y_axis_one_combo['values'] = self.headers
-            self.y_axis_one_combo.set(self.headers[1])
+            self.y1_axis_combo['values'] = self.headers
+            self.y1_axis_combo.set(self.headers[1])
             self.y1_errorbar_combo['values'] = ['None'] + self.headers
             self.y1_errorbar_combo.set('None')
             y_axis2 = ['None'] + self.headers
-            self.y_axis_two_combo['values'] = y_axis2
+            self.y2_axis_combo['values'] = y_axis2
             self.y2_errorbar_combo['values'] = ['None'] + self.headers
             self.y2_errorbar_combo.set('None')
-            self.y_axis_two_combo.set(y_axis2[0])
+            self.y2_axis_combo.set(y_axis2[0])
 
             # Adding options for subplot comboboxes
             self.subplot1_combo['values'] = ['None'] + self.headers
@@ -159,13 +161,53 @@ class Application(Frame, MainWindow):
 
         except Exception as err:
             print("Error occurred in read_csv: " + str(err))
-        self.update_main_plot()
+
+    def plot_data(self):
+        self.load_x_data()
+        self.load_y1_data()
+        self.load_y2_data()
+        self.normalize()
+        self.clear_main_plot()
+        self.draw_main_plot()
+
+    def load_x_data(self, event=None):
+        self.x_data_orig = self.df[self.x_axis_combo.get()].tolist()
+        self.x_data = self.x_data_orig
+
+    def load_y1_data(self, event=None):
+        self.y1_data_orig = self.df[self.y1_axis_combo.get()].tolist()
+        self.y1_data = self.y1_data_orig
+    
+    def load_y2_data(self, event=None):
+        self.y2_str = self.y2_axis_combo.get()
+        try:
+            self.ax2.remove()
+        except:
+            pass
+        if 'None' not in self.y2_str:
+            self.y2_data_orig = self.df[self.y2_str].tolist()
+            self.y2_data = self.y2_data_orig
+            self.ax2 = self.ax1.twinx()
+            self.ax2.plot(self.x_data, self.y2_data)
+            self.default_y2_lim = self.ax2.get_ylim()
+
+    def normalize(self, event=None):
+        if event is None:
+            self.normalize_entry.delete(0, 'end')
+
+        if len(self.normalize_entry.get()) != 0:
+            self.use_normalize = True
+        else:
+            self.use_normalize = False
+
+    def clear_main_plot(self):
+        self.ax1.clear()
 
     def update_axes(self):
         try:
             self.x_data_orig = self.df[self.x_axis_combo.get()].tolist()
             self.x_data = self.x_data_orig
-            self.y1_data_orig = self.df[self.y_axis_one_combo.get()].tolist()
+            self.y1_data_orig = self.df[self.y1_axis_combo.get()].tolist()
             self.y1_data = self.y1_data_orig
 
             if 'None' in self.y1_errorbar_combo.get():
@@ -178,7 +220,7 @@ class Application(Frame, MainWindow):
             self.default_x_lim = self.ax1.get_xlim()
             self.default_y1_lim = self.ax1.get_ylim()
 
-            self.y2_str = self.y_axis_two_combo.get()
+            self.y2_str = self.y2_axis_combo.get()
 
             try:
                 self.ax2.remove()
@@ -220,16 +262,18 @@ class Application(Frame, MainWindow):
         self.file_list_combo.set(self.file_list[index])
         self.select_new_file()
 
-    def update_main_plot(self, event=None):
-        self.update_axes()
+    def draw_main_plot(self, event=None):
+        #self.update_axes()
+        #self.check_for_y2()
         self.ax1.clear()
         self.ax1.yaxis.set_ticks_position('both')
         try:
             self.ax2.clear()
+            print('test')
         except:
             pass
 
-        self.set_limits()
+        #self.set_limits()
         if 'None' in self.y1_errorbar_combo.get():
             self.ax1.plot(self.x_data, self.y1_data, marker=self.y1_marker_combo.get(), ls=self.y1_linestyle_combo.get(), c=self.line_colours[self.y1_colour_combo.get()],
                           ms=float(self.y1_marker_size_combo.get()), lw=float(self.y1_line_width_combo.get()), label=self.y1_legend_entry.get())
@@ -239,6 +283,7 @@ class Application(Frame, MainWindow):
                               c=self.line_colours[self.y1_colour_combo.get()], ms=float(self.y1_marker_size_combo.get()), lw=float(self.y1_line_width_combo.get()),
                               label=self.y1_legend_entry.get())
         
+        # Adds subplots that are defined under the subplot options tab of the UI
         if 'None' not in self.subplot1_combo.get():
             subplot1_data = self.df[self.subplot1_combo.get()].tolist()
             self.ax1.plot(self.x_data, subplot1_data, label=self.subplot1_entry.get(), marker=self.y1_marker_combo.get(), ls=self.y1_linestyle_combo.get(),
@@ -255,9 +300,6 @@ class Application(Frame, MainWindow):
             subplot4_data = self.df[self.subplot4_combo.get()].tolist()
             self.ax1.plot(self.x_data, subplot4_data, label=self.subplot4_entry.get(), marker=self.y1_marker_combo.get(), ls=self.y1_linestyle_combo.get(),
                           ms=float(self.y1_marker_size_combo.get()), lw=float(self.y1_line_width_combo.get()))
-
-        self.ax1.set_xlabel(self.x_axis_title_entry.get())
-        self.ax1.set_ylabel(self.y1_axis_title_entry.get())
 
         if 'None' not in self.y2_str:
             self.ax1.yaxis.set_ticks_position('left')
@@ -276,9 +318,13 @@ class Application(Frame, MainWindow):
             self.ax2.yaxis.label.set_fontsize(self.font_size[self.axis_label_size_combo.get()])  
             for tick in self.ax2.get_yticklabels():
                 tick.set_fontsize(self.font_size[self.tick_size_combo.get()])
-
+        self.canvas1.draw()
         # Sets figure title and font size of title
         self.ax1.set_title(self.set_title_entry.get().replace('\TITLE', self.file_list_combo.get()), fontsize=self.font_size[self.title_size_combo.get()])
+
+        # Sets x and y1 labels.
+        self.ax1.set_xlabel(self.x_axis_title_entry.get())
+        self.ax1.set_ylabel(self.y1_axis_title_entry.get())
 
         # Sets font size for both x-axis and y(1)-axis labels
         self.ax1.xaxis.label.set_fontsize(self.font_size[self.axis_label_size_combo.get()])
@@ -301,16 +347,7 @@ class Application(Frame, MainWindow):
                 self.ax1.legend(lines, labels, loc=0, fontsize=self.font_size[self.legend_size_combo.get()])
 
         self.main_fig.tight_layout()
-        self.canvas1.draw()
-
-    def normalize(self, event=None):
-        if event is None:
-            self.normalize_entry.delete(0, 'end')
-        if len(self.normalize_entry.get()) != 0:
-            self.use_normalize = True
-        else:
-            self.use_normalize = False
-        self.update_main_plot()
+        self.set_limits()
 
     def print_pdf(self):
         pass
@@ -319,37 +356,33 @@ class Application(Frame, MainWindow):
         y_point, x_point = event.xdata, event.ydata  # have to flip x and y because plot is displayed at right angle
         return y_point, x_point
 
-    def set_limits(self):
-        if self.retain_range.get() == 0:
-            if len(self.set_xmin_range_entry.get()) == 0:
-                xmin = 0
-            else:
-                xmin = fnc.find_nearest(self.x_data_orig, float(self.set_xmin_range_entry.get()))
-            if len(self.set_xmax_range_entry.get()) == 0:
-                self.x_data = self.x_data_orig[xmin:]
-                self.y1_data = self.y1_data_orig[xmin:]
-            else:
-                xmax = fnc.find_nearest(self.x_data_orig, float(self.set_xmax_range_entry.get()))
-                self.x_data = self.x_data_orig[xmin:xmax]
-                self.y1_data = self.y1_data_orig[xmin:xmax]
+    def set_limits(self, event=None):
+        if len(self.set_xmin_range_entry.get()) != 0:
+            left = float(self.set_xmin_range_entry.get())
+            self.ax1.set_xlim(left=left)
 
-            if len(self.set_y1min_range_entry.get()) != 0:
-                self.ax1.set_ylim(bottom=float(self.set_y1min_range_entry.get()), top=None)
-            if len(self.set_y1max_range_entry.get()) != 0:
-                self.ax1.set_ylim(bottom=None, top=float(self.set_y1max_range_entry.get()))
+        if len(self.set_xmax_range_entry.get()) != 0:
+            right = float(self.set_xmax_range_entry.get())
+            self.ax1.set_xlim(right=right)
+            
+        if len(self.set_y1min_range_entry.get()) != 0:
+            y1_bottom = float(self.set_y1min_range_entry.get())
+            self.ax1.set_ylim(bottom=y1_bottom)
 
-            if 'None' not in self.y2_str:
-                if len(self.set_y2min_range_entry.get()) != 0:
-                    self.ax2.set_ylim(bottom=float(self.set_y2min_range_entry.get()), top=None)
-                if len(self.set_y2max_range_entry.get()) != 0:
-                    self.ax2.set_ylim(bottom=None, top=float(self.set_y2max_range_entry.get()))
+        if len(self.set_y1max_range_entry.get()) != 0:
+            y1_top = float(self.set_y1max_range_entry.get())
+            self.ax1.set_ylim(top=y1_top)
+            
+        if len(self.set_y2min_range_entry.get()) != 0:
+            y2_bottom = float(self.set_y2min_range_entry.get())
+            self.ax2.set_ylim(bottom=y2_bottom)
 
-        else:
-            self.x_data = self.x_data_orig
-            self.y1_data = self.y1_data_orig
-            if 'None' not in self.y2_str:
-                self.y2_data = self.y2_data_orig
+        if len(self.set_y2max_range_entry.get()) != 0:
+            y2_top = float(self.set_y2max_range_entry.get())
+            self.ax2.set_ylim(top=y2_top)
 
+        self.canvas1.draw()
+        
         if self.use_normalize:
             if len(self.normalize_entry.get()) != 0:
                 norm_local = float(self.normalize_entry.get())
@@ -361,17 +394,20 @@ class Application(Frame, MainWindow):
     def reset_x_range(self):
         self.set_xmax_range_entry.delete(0, 'end')
         self.set_xmin_range_entry.delete(0, 'end')
-        self.update_main_plot()
+        self.ax1.set_xlim(self.default_x_lim)
+        self.canvas1.draw()
 
     def reset_y1_range(self):
         self.set_y1max_range_entry.delete(0, 'end')
         self.set_y1min_range_entry.delete(0, 'end')
-        self.update_main_plot()
+        self.ax1.set_ylim(self.default_y1_lim)
+        self.draw_main_plot()
 
     def reset_y2_range(self):
         self.set_y2max_range_entry.delete(0, 'end')
         self.set_y2min_range_entry.delete(0, 'end')
-        self.update_main_plot()
+        self.ax2.set_ylim(self.default_y2_lim)
+        self.draw_main_plot()
 
     def save_fig(self):
         if not os.path.exists(self.file_dir + '/Figures'):

@@ -3,7 +3,6 @@ from tkinter.ttk import Combobox, Notebook
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import tkinter as tk
 import matplotlib.pyplot as plt
-matplotlib.use('TkAgg')
 
 
 class MainWindow:
@@ -25,8 +24,8 @@ class MainWindow:
         # Comboboxes
         self.file_list_combo = None
         self.x_axis_combo = None
-        self.y_axis_one_combo = None
-        self.y_axis_two_combo = None
+        self.y1_axis_combo = None
+        self.y2_axis_combo = None
 
         # Graphs
         self.main_fig = None
@@ -79,8 +78,8 @@ class MainWindow:
         y_axis_one_label.grid(row=5, column=0, padx=(10, 0), pady=5, sticky='w')
         y_axis_one_frame = tk.Frame(master=self.options_frame)
         y_axis_one_frame.grid(row=5, column=1, columnspan=5, padx=10, sticky='w')
-        self.y_axis_one_combo = Combobox(y_axis_one_frame, width=30)
-        self.y_axis_one_combo.pack(side=tk.LEFT, padx=(0, 5))
+        self.y1_axis_combo = Combobox(y_axis_one_frame, width=30)
+        self.y1_axis_combo.pack(side=tk.LEFT, padx=(0, 5))
         y_axis_one_label_label = tk.Label(y_axis_one_frame, text='Enter Y-axis (1) label: ')
         y_axis_one_label_label.pack(side=tk.LEFT, padx=(0, 5))
         self.y1_legend_entry = tk.Entry(y_axis_one_frame, width=27)
@@ -97,8 +96,8 @@ class MainWindow:
         y_axis_two_label.grid(row=7, column=0, padx=(10, 0), pady=5, sticky='w')
         y_axis_two_frame = tk.Frame(master=self.options_frame)
         y_axis_two_frame.grid(row=7, column=1, columnspan=5, padx=10, sticky='w')
-        self.y_axis_two_combo = Combobox(y_axis_two_frame, width=30)
-        self.y_axis_two_combo.pack(side=tk.LEFT, padx=(0, 5))
+        self.y2_axis_combo = Combobox(y_axis_two_frame, width=30)
+        self.y2_axis_combo.pack(side=tk.LEFT, padx=(0, 5))
         y_axis_two_label_label = tk.Label(y_axis_two_frame, text='Enter y-axis (2) label: ')
         y_axis_two_label_label.pack(side=tk.LEFT, padx=(0, 5))
         self.y2_legend_entry = tk.Entry(y_axis_two_frame, width=27)
@@ -126,10 +125,10 @@ class MainWindow:
         more_options_frame = tk.Frame(self.nb, width=10)
         self.nb.add(more_options_frame, text='Graph Options')
 
-        self.retain_range = tk.IntVar(value=1)
-        self.retain_range_button = tk.Checkbutton(more_options_frame, text="Use default limits.",
-                                                  variable=self.retain_range)
-        self.retain_range_button.grid(row=0, column=0, columnspan=2, sticky='w', padx=(10, 0), pady=5)
+        # self.retain_range = tk.IntVar(value=1)
+        # self.retain_range_button = tk.Checkbutton(more_options_frame, text="Use default limits.",
+        #                                           variable=self.retain_range)
+        # self.retain_range_button.grid(row=0, column=0, columnspan=2, sticky='w', padx=(10, 0), pady=5)
 
         set_xmin_range_label = tk.Label(more_options_frame, text='Set min x value: ')
         set_xmin_range_label.grid(row=1, column=0, padx=(10, 0), pady=5, sticky='w')
