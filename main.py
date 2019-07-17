@@ -296,10 +296,11 @@ class Application(Frame, MainWindow):
             lines, labels = self.ax1.get_legend_handles_labels()
             if 'None' not in self.y2_str:
                 lines2, labels2 = self.ax2.get_legend_handles_labels()
-                self.ax2.legend(lines + lines2, labels + labels2, loc=0, fontsize=self.font_size[self.legend_size_combo.get()])
+                leg = self.ax2.legend(lines + lines2, labels + labels2, loc=0, fontsize=self.font_size[self.legend_size_combo.get()])
             else:
-                self.ax1.legend(lines, labels, loc=0, fontsize=self.font_size[self.legend_size_combo.get()])
-
+                leg = self.ax1.legend(lines, labels, loc=0, fontsize=self.font_size[self.legend_size_combo.get()])
+            leg.set_draggable(True)
+            
         self.main_fig.tight_layout()
         self.canvas1.draw()
 

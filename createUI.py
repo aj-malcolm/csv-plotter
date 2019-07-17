@@ -339,7 +339,7 @@ class MainWindow:
         toolbar_frame = tk.Frame(master=self.graph_frame)
         toolbar_frame.grid(row=2, column=1, columnspan=2, sticky='w', padx=10)
 
-        self.main_fig, self.ax1 = plt.subplots(1, 1, figsize=(10, 6), dpi=100)
+        self.main_fig, self.ax1 = plt.subplots(1, 1, figsize=(8, 6), dpi=100)
         self.canvas1 = FigureCanvasTkAgg(self.main_fig, master=self.graph_frame)
         toolbar1 = NavigationToolbar2Tk(self.canvas1, toolbar_frame)
         toolbar1.update()
